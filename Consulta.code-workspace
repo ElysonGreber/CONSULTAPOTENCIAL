@@ -1,0 +1,71 @@
+{
+	"folders": [
+		{
+			"name": "Consulta",
+			"path": "."
+		}
+	],
+	"settings": {
+		"cSpell.ignoreWords": [
+			"Altura",
+			"Aproveitamento",
+			"Coeficiente",
+			"Complementares",
+			"Construtivo",
+			"Construída",
+			"Cálculo",
+			"Montagem",
+			"Máxima",
+			"Mínima",
+			"Mínimo",
+			"Nenhuma",
+			"Ocupacao",
+			"Ocupada",
+			"Ocupação",
+			"Parâmetros",
+			"Pavimentos",
+			"Permeabilidade",
+			"Permeável",
+			"Potencial",
+			"Recuo",
+			"Registro",
+			"Testada",
+			"Zona",
+			"altura",
+			"calculos",
+			"construida",
+			"desejada",
+			"encontrada",
+			"fornecida",
+			"iloc",
+			"indicacao",
+			"indicação",
+			"informação",
+			"inválida",
+			"mensagem",
+			"múltiplos",
+			"ocup",
+			"ocupada",
+			"ordem",
+			"parametros",
+			"pavimentos",
+			"permeavel",
+			"reconhecida",
+			"recuo",
+			"registros",
+			"sigla",
+			"tabela",
+			"terreno",
+			"testada",
+			"zona",
+			"Área",
+			"área"
+		]
+	},
+	"launch": {
+		"version": "0.2.0",
+		"configurations": [
+		
+		]
+	}
+}
