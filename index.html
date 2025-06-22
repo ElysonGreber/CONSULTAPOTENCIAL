@@ -8,101 +8,53 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="https://unpkg.com/esri-leaflet-geocoder/dist/esri-leaflet-geocoder.css" />
-  <style> </style>
+
   <style>
     html, body {
       height: 100%;
       margin: 0;
       padding: 0;
     }
-    .form-control {
-      display: block;
-      width: 100%;
-      padding: 0.375rem 0.75rem;
-      font-size: 1rem;
-      font-weight: 400;
-      line-height: 1.5;
-      color: var(--bs-body-color);
-      background-color: var(--bs-body-bg);
-      background-clip: padding-box;
-      border: var(--bs-border-width) solid #1076dc;
-      -webkit-appearance: none;
-      -moz-appearance: none;
-      appearance: none;
-      border-radius: var(--bs-border-radius);
-      transition: border-color .15s ease-in-out, box-shadow .15s ease-in-out;
-  }
-  
-  .input-group {
-      position: relative;
-      display: flex;
-      flex-wrap: wrap;
-      align-items: stretch;
-      width: 100%;
-      box-shadow: 0px 25px 15px -15px #929292;
-  }
-    .titulo-potencial {
-      color: #ffffff;
-      font-size: 1.3rem;
-      font-weight: bold;
-      margin-top: 20px;
-      margin-bottom: 0px;
-      background-color: #6c7ae0;
-      padding: 8px;
-      border-top-right-radius: 0.375rem;
-      border-top-left-radius: 0.375rem;
-      /* ou qualquer estilo que quiser aplicar */
-  }
-    #A {
-      background-color: #f9f9f9;
-      border-collapse: collapse;
-      width: 100%;
-      font-size: 15px;
-      font-weight: bold;
-  }
-  
-  #A tbody {
-      box-shadow: 0px 25px 15px -15px #0b0a0a;
-  }
-  
-  #A th,
-  #A td {
-      color: #525252;
-      padding: 8px;
-      text-align: left;
-      border: 1px solid #ddd;
-      font-family: Lato-Regular;
-  }
-  
-  #A th {
-      background-color: #e0e0e0;
-  }
+
     #map {
       position: fixed;
       top: 0;
       left: 0;
-      height: 100%;
       width: 100%;
+      height: 100%;
       z-index: 0;
     }
 
-    .sidebar {
+    #sidebar-esquerda {
       position: fixed;
       top: 0;
       left: 0;
       width: 500px;
       height: 100%;
-      background-color: rgba(250, 250, 250, 0.8);
+      background-color: rgba(250, 250, 250, 0.85);
       padding: 1rem;
       overflow-y: auto;
       z-index: 1000;
       box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2);
     }
 
+    #sidebar-direita {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: 400px;
+      height: 100%;
+      background-color: rgba(250, 250, 250, 0.85);
+      padding: 1rem;
+      overflow-y: auto;
+      z-index: 1000;
+      box-shadow: -2px 0 10px rgba(0, 0, 0, 0.2);
+    }
+
     .topmenu h2 {
-      font-size: 1.2rem;
+      font-size: 1.4rem;
       margin-bottom: 1rem;
-      color: white;
+      color: black;
     }
 
     .leaflet-control-layers {
@@ -112,32 +64,42 @@
 </head>
 
 <body>
-  <!-- Mapa -->
+  <!-- Mapa em segundo plano -->
   <div id="map"></div>
 
-  <!-- Barra lateral -->
-  <div class="sidebar">
+  <!-- Sidebar esquerda (busca e cálculo) -->
+  <div id="sidebar-esquerda">
     <div class="topmenu">
       <h2>Consulta de Lote</h2>
     </div>
 
     <form method="POST" class="mb-3">
-      <div class="mb-2">
+      <div class="input-group mb-2">
         <input type="text" name="indicacao_fiscal" class="form-control" placeholder="Indicação Fiscal" required />
+        <button type="submit" class="btn btn-primary">Buscar</button>
       </div>
-      <button type="submit" class="btn btn-primary w-100">Buscar</button>
     </form>
-
-    <a href="M.html" class="btn btn-link mt-2">Ir para outra página</a>
 
     {% if mensagem %}
       <div class="alert alert-warning mt-3">{{ mensagem }}</div>
     {% endif %}
 
-    {% if tabela %}
-      <div class="mt-3">
-        {{ tabela | safe }}
-      </div>
+    {% if html_calc %}
+      <h4>Cálculo de Potencial Construtivo</h4>
+      {{ html_calc | safe }}
+    {% endif %}
+  </div>
+
+  <!-- Sidebar direita (dados extras) -->
+  <div id="sidebar-direita">
+    {% if html_lote %}
+      <h4>Dados do Lote</h4>
+      {{ html_lote | safe }}
+    {% endif %}
+
+    {% if html_extra %}
+      <h4>Outros Dados</h4>
+      {{ html_extra | safe }}
     {% endif %}
   </div>
 
@@ -146,7 +108,7 @@
   <script src="https://unpkg.com/esri-leaflet@3.0.10/dist/esri-leaflet.js"></script>
 
   <script>
-    // Coordenadas iniciais
+    const indicacaoFiscal = "{{ request.form.get('indicacao_fiscal', '') }}";
     const lat = {{ lat if lat else 'null' }};
     const lon = {{ lon if lon else 'null' }};
 
@@ -155,18 +117,16 @@
       zoom: lat && lon ? 18 : 16,
       minZoom: 10,
       maxZoom: 23,
-      //zoomControl: true,
-     // attributionControl: true
+      zoomControl: false,
+      attributionControl: true
     });
 
-    // Camada base: Ortofotos 2019
     const ortofoto2019 = L.esri.tiledMapLayer({
       url: "https://geocuritiba.ippuc.org.br/server/rest/services/Hosted/Ortofotos2019/MapServer",
       maxZoom: 23,
       attribution: "Ortofotos © GeoCuritiba"
     });
 
-    // Camadas adicionais
     const mapaCadastral = L.esri.dynamicMapLayer({
       url: "https://geocuritiba.ippuc.org.br/server/rest/services/GeoCuritiba/Publico_GeoCuritiba_MapaCadastral/MapServer",
       layers: [23],
@@ -185,26 +145,58 @@
       opacity: 0.8
     });
 
-    // Adiciona camadas ao mapa inicialmente
     ortofoto2019.addTo(map);
     mapaCadastral.addTo(map);
     lotecadastral.addTo(map);
     sviario.addTo(map);
 
-    // Controle de camadas (canto superior direito)
+    if (indicacaoFiscal) {
+      const textos = L.esri.featureLayer({
+        url: "https://geocuritiba.ippuc.org.br/server/rest/services/GeoCuritiba/Publico_GeoCuritiba_MapaCadastral/MapServer/16",
+        where: `gtm_ind_fiscal = '${indicacaoFiscal}'`,
+        style: {
+          color: 'red',
+          weight: 2,
+          fillOpacity: 0.2
+        },
+        onEachFeature: function (feature, layer) {
+          const props = feature.properties;
+          layer.bindPopup(`<b>Indicação Fiscal:</b> ${props.gtm_ind_fiscal}`);
+        }
+      }).addTo(map);
+
+      let jaZoonou = false;
+
+      textos.on('load', function () {
+        if (!jaZoonou) {
+          textos.query().where(`gtm_ind_fiscal = '${indicacaoFiscal}'`).bounds(function (error, bounds) {
+            if (!error && bounds) {
+              jaZoonou = true;
+              map.fitBounds(bounds, { maxZoom: 19 });
+            }
+          });
+        }
+      });
+    } else {
+      const textos = L.esri.dynamicMapLayer({
+        url: "https://geocuritiba.ippuc.org.br/server/rest/services/GeoCuritiba/Publico_GeoCuritiba_MapaCadastral/MapServer",
+        layers: [16],
+        opacity: 0.8
+      }).addTo(map);
+    }
+
     const baseLayers = {
       "Ortofotos 2019": ortofoto2019
     };
 
     const overlayLayers = {
-      "Mapa Cadastral (layer 23)": mapaCadastral,
-      "Lotes (layer 15)": lotecadastral,
-      "Sistema Viário (layer 34)": sviario
+      "Mapa Cadastral (23)": mapaCadastral,
+      "Lotes (15)": lotecadastral,
+      "Sistema Viário (34)": sviario
     };
 
     L.control.layers(baseLayers, overlayLayers, { position: 'topright' }).addTo(map);
 
-    // Marcador central (caso coordenadas fornecidas)
     if (lat && lon) {
       L.marker([lat, lon]).addTo(map)
         .bindPopup("Lote centralizado")
